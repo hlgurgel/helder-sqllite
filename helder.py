@@ -29,11 +29,25 @@ class Helper:
         
         self.__check_database_schema(base, table_name, columns)
 
-        scolumns = ','.join(columns)
-        svalues = (',?'*len(columns))[1:]
-        s = f'INSERT INTO {table_name} ({scolumns}) VALUES ({svalues});'
-        base.execute(s, values)
-        new_id = int(base.execute('select last_insert_rowid() as id;').fetchone()['id'])
+        if '__id' not in columns:
+            scolumns = ','.join(columns)
+            svalues = (',?'*len(columns))[1:]
+            s = f'INSERT INTO {table_name} ({scolumns}) VALUES ({svalues});'
+            base.execute(s, values)
+            new_id = int(base.execute('select last_insert_rowid() as id;').fetchone()['id'])
+        else:
+            primeiro = True
+            s = f'UPDATE {table_name} SET '
+            columns_reversed = columns[::-1]
+            values_reversed = values[::-1]
+            for column in [c for c in columns_reversed if c != '__id']:
+                if not primeiro:
+                    s += ','
+                s += f'{column} = ? '
+                primeiro = False
+            s += f'WHERE __id = ?'
+            base.execute(s, values_reversed)
+            new_id = values[columns.index('__id')]
         base.close()
 
         return new_id
@@ -61,16 +75,12 @@ class Helper:
         for table in data:
             query = f'SELECT * FROM {table}'
             parameters = data[table]
-            # print('parameters', parameters)
             if parameters is not None:
                 query += ' WHERE 0 = 0'
                 for cname in parameters:
-                    # print('cname', cname)
-                    # print('cvalue', parameters[cname])
                     parameter = parameters[cname]
                     if isinstance(parameter, list):
                         qlist = ','.join([str(v) for v in parameters[cname]])
-                        # print('qlist', qlist)
                         query += f' AND {cname} in ({qlist})'
             query_result = base.execute(query).fetchall()
             queries_result.append(query_result)
@@ -84,6 +94,6 @@ if __name__ == '__main__':
     h = Helper('teste.db')
     # h.save(pessoa=dict(nome='Helder Gurgel'))
     # h.save(pessoa=[dict(nome='Helder Gurgel'),dict(nome='Ana Carolina', idade=9)])
-    print(h.save(pessoa=[dict(nome='Ticiana Facundo')]))
+    print(h.save(pessoa=[dict(idade=18, __id=1)]))
     # print(h.search(pessoa=dict(__id=[1,2])))
     del h
