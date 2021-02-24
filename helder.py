@@ -82,6 +82,13 @@ class Helper:
                     if isinstance(parameter, list):
                         qlist = ','.join([str(v) for v in parameters[cname]])
                         query += f' AND {cname} in ({qlist})'
+                    elif isinstance(parameter, str):
+                        query += f' AND {cname} = \'{parameter}\''
+                    elif isinstance(parameter, int) or isinstance(parameter, float):
+                        if parameter.is_integer():
+                            parameter = int(parameter)
+                        query += f' AND {cname} = {parameter}'
+
             query_result = base.execute(query).fetchall()
             queries_result.append(query_result)
         base.close()
@@ -94,6 +101,6 @@ if __name__ == '__main__':
     h = Helper('teste.db')
     # h.save(pessoa=dict(nome='Helder Gurgel'))
     # h.save(pessoa=[dict(nome='Helder Gurgel'),dict(nome='Ana Carolina', idade=9)])
-    print(h.save(pessoa=[dict(idade=18, __id=1)]))
-    # print(h.search(pessoa=dict(__id=[1,2])))
+    # print(h.save(pessoa=[dict(nome='Helder Gurgel')]))
+    print(h.search(pessoa=dict(idade=18.0)))
     del h
